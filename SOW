@@ -1,15 +1,61 @@
-Scope of Work (SOW) - Time Keeper Application : 
-1. Project Overview : 
-  Project Name : Time Keeper 
-  Team Members : Suong Tran, Tobias Cash, Isaac Allen, Jesus Ramos 
-  Objective : ...
+Scope of Work (SOW) - Time Management Application : 
+By : IT Monkeys
+Project Leader - Suong Tran
+Project Manager - Tobias Cash 
+Team Member - Jesus Ramos
+Team Member Issac Allen
 
-  Platform : ..
+1 . Project Overview
+Project Name : Time Keeper
+Team Members : Suong Tran, Tobias Cash, Issac Allen, Jesus Allen
+Objectives : Develope a time management application to help users organize tasks, and track produtivity
+Platform : Android/IOS
+Tech Stack : Flutter/ Dart/ SQLite
 
-  Tech Stack : 
+2. Goals and Deliverables
+Primary Goal : Build a functioning Time Management Application
+Application (with all requirements met)
+Documentation : Complete with user-guide + technical guide
+Testing reports
+Deployment
 
-2 . Goals and Deliverables : 
-  Primary Goal : Build a functioning time management app that can be deployed on across multiple platforms 
+3. Scope of Work
+In Scope Features :
+Time Management Interface to add Jobs [ edit, delete, categorize]
+Provide Calander View for created Tasks
+Productivity Tracking
+Data Storage and Sync
+Ui/UX design - responive design, easyly manageable tasks
+Out of Scope :
+AI - based scheduling
+Monetization features
+wearable or smart device integrations
 
-  Deliverables : 
-                Application with 
+4. Roles and Responsibilities
+Frontend Development : Suong Tran, Jesus Ramos
+Backend Development : Tobias Cash, Isaac Allen
+Design : Isaac Allen, Jesus Ramos, Suong Tran
+Server Deployment : Tobias Cash, Suong Tran
+Testing & QA : Tobias Cash
+Documentation : Isaac Allen, Jesus Ramos
+
+5. Timeline
+Week 1 -2 : (Analysis) Finish Gathering Client information, & identify Project Requirements, Reasearch existing commercial software packages & determine whather it is better for your client to buy and exisiting product or to contract our group to build one.
+Week 3 -4 : (Analysis) Create Traditional Models that define the solution to the business problem. Event Table, ER Diagrams, DFDs & pseudocode for the DFD processes. (Design Desicions are still logical as opposed to physical. For ex, your group might know that you will need a database, but you will not yet have made the final decision on which commercial database to use.
+Create UML Diagrams that are common in the IT industry, Use-case Diagrams, Domain class Diagram, System Sequence Diagram, Activity Diagram, Statechart Diagram
+Week 5 - 6 : (Design) Logical models are updated with physical design decisions. Ex. The orginal Domain class Diagram will be updated to contain classes methods, attributes, and data types. Discuss UI design, and address security and networking considerations
+Create the prototype, test the prototype with vital use cases to make sure system solves the business problem
+Week 6 - 7 : (Implementation) Revise Protoype, Create a Test Plan, Create the Instalation Plan, Deliver Documentation, Identify Post-Installation Plan for Maintenance, Identify Support Plan
+Create a Training Plan
+Week 7 - 8 : (Testing ) Revise prototype based on feedback learned during testing, submit a document of logs (Project Testing Log File or Summary Assignment)
+(Presentation) Prepare and deliver Final Project Presentation
+
+6. Assumptions and Contraints
+Team will use GitHub
+Host on a local server
+Deployment must be completed within 10 weeks
+
+7. Sucess Criteria
+Application allows user to create and manage tasks sucessfully
+Runs reliably on intended platforms
+Documentation is complete and understandable
