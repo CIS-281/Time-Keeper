@@ -1,0 +1,75 @@
+
+ 1. Executive Summary
+Feasibility Analysis: Time Keeper -
+
+A Time management application for IOS/Android built for a variety of users, focused on tracking progress over a set period of time.
+
+Purpose: To determine whether the Time Keeper application is worth completing, based on our willingness to learn, 
+time, resources, and skill. 
+
+ 2. Market Feasibility (Market Research)
+
+Target audience: students, professionals, teams, freelancers
+
+Market need: A quick time tracking app that can be used for progressing skills,
+or tracking work hours, while also providing a calandar overview of time tracked. 
+
+Competitive analysis: Overview of existing time management tools ( Todoist, Trello, Notion, Google Calendar).
+
+Unique Selling Proposition (USP): Our application allows the user to use a 
+stopwatch function to track smaller periods of time, compared to competitors.
+
+ 3. Economic/Financial Feasibility
+
+Cost estimate: Free using, Flutter/Dart/Android etc.
+
+Revenue model: Free, freemium, subscription, ads, one-time payment.
+
+Break-even analysis: Whenever it is completed, since it is mostly going to be used on our resumes.
+
+Return on Investment (ROI) projection: Potentially large 
+
+Funding requirements: none
+
+4. Technical Feasibility
+
+Technology stack: Dart/Flutter, Android Studio, Web Hosting
+
+Platform(s): Mobile (iOS/Android)
+
+Integration requirements: Calendar APIs (Google, Outlook), task management tools?
+
+Scalability: Can be easily scaled upwards or downwards depending on our workload. 
+
+Security and privacy: Base requirement
+
+ 6. Operational Feasibility
+
+Resource availability: We have four student members who should be able to complete this project. 
+
+Organizational fit: As Students this aligns heavily with our time management goals when studying,
+or tracking hours on freelance work. 
+
+Support plan: Can provide a breif explainantion of install and post maintanence plan for users. 
+
+ 7. Schedule Feasibility
+
+Development timeline: 14 weeks - Planning Phase, Analysis Phase, Design Phase, Implementation Phase, Deployment Phase
+Given the scope of this project is not too heavy, as a group, we find 14 weeks plently of time to develope this application.
+
+8. Risk Analysis
+
+Technical risks: Integration failures, bugs, app store rejections, api issues. 
+
+Market risks: Low user adoption, strong competition.
+
+Financial risks: questionable ROI.
+
+Mitigation strategies: Backup plans, pivots, phased rollouts.
+
+ 9. Conclusion & Recommendations
+
+With Flutter and Dart we can deliver one codebase for both platforms, 
+the tools are free, and the timeline is achievable. The ROI for this project
+is given mostly as experience for our careers.
+TimeKeeper is a feasible project for our capstone.
