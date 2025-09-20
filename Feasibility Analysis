@@ -19,7 +19,7 @@ Competitive analysis: Overview of existing time management tools ( Todoist, Trel
 Unique Selling Proposition (USP): Our application allows the user to use a 
 stopwatch function to track smaller periods of time, compared to competitors.
 
- 3. Economic/Financial Feasibility
+( 3. Economic/Financial Feasibility)
 
 Cost estimate: Free using, Flutter/Dart/Android etc.
 
@@ -57,7 +57,7 @@ Support plan: Can provide a breif explainantion of install and post maintanence 
 Development timeline: 14 weeks - Planning Phase, Analysis Phase, Design Phase, Implementation Phase, Deployment Phase
 Given the scope of this project is not too heavy, as a group, we find 14 weeks plently of time to develope this application.
 
-8. Risk Analysis
+(8. Risk Analysis)
 
 Technical risks: Integration failures, bugs, app store rejections, api issues. 
 
