@@ -7,19 +7,7 @@ A Time management application for IOS/Android built for a variety of users, focu
 Purpose: To determine whether the Time Keeper application is worth completing, based on our willingness to learn, 
 time, resources, and skill. 
 
- 2. Market Feasibility (Market Research)
-
-Target audience: students, professionals, teams, freelancers
-
-Market need: A quick time tracking app that can be used for progressing skills,
-or tracking work hours, while also providing a calandar overview of time tracked. 
-
-Competitive analysis: Overview of existing time management tools ( Todoist, Trello, Notion, Google Calendar).
-
-Unique Selling Proposition (USP): Our application allows the user to use a 
-stopwatch function to track smaller periods of time, compared to competitors.
-
-( 3. Economic/Financial Feasibility)
+2. Economic/Financial Feasibility)
 
 Cost estimate: Free using, Flutter/Dart/Android etc.
 
@@ -31,7 +19,7 @@ Return on Investment (ROI) projection: Potentially large
 
 Funding requirements: none
 
-4. Technical Feasibility
+3. Technical Feasibility
 
 Technology stack: Dart/Flutter, Android Studio, Web Hosting
 
@@ -43,26 +31,16 @@ Scalability: Can be easily scaled upwards or downwards depending on our workload
 
 Security and privacy: Base requirement
 
- 6. Organizational (Polictical) 
+ 4. Organizational (Polictical) 
 Political/Organizational motive: To allow users easier ways to progress their buisness or hobbies
 
 Alignment with Stakeholder Goals: Support businesses by improving productivity, and accountability
                                   Aligns with organizational values of efficiency, self-management, and growth
 
- 7. Schedule Feasibility
+ 5. Schedule Feasibility
 
 Development timeline: 14 weeks - Planning Phase, Analysis Phase, Design Phase, Implementation Phase, Deployment Phase
 Given the scope of this project is not too heavy, as a group, we find 14 weeks plently of time to develope this application.
-
-(8. Risk Analysis)
-
-Technical risks: Integration failures, bugs, app store rejections, api issues. 
-
-Market risks: Low user adoption, strong competition.
-
-Financial risks: questionable ROI.
-
-Mitigation strategies: Backup plans, pivots, phased rollouts.
 
  9. Conclusion & Recommendations
 
