@@ -1,25 +1,9 @@
 
- 1. Executive Summary
-Feasibility Analysis: Time Keeper -
 
-A Time management application for IOS/Android built for a variety of users, focused on tracking progress over a set period of time.
 
-Purpose: To determine whether the Time Keeper application is worth completing, based on our willingness to learn, 
-time, resources, and skill. 
 
- 2. Market Feasibility (Market Research)
 
-Target audience: students, professionals, teams, freelancers
-
-Market need: A quick time tracking app that can be used for progressing skills,
-or tracking work hours, while also providing a calandar overview of time tracked. 
-
-Competitive analysis: Overview of existing time management tools ( Todoist, Trello, Notion, Google Calendar).
-
-Unique Selling Proposition (USP): Our application allows the user to use a 
-stopwatch function to track smaller periods of time, compared to competitors.
-
-( 3. Economic/Financial Feasibility)
+( 1. Economic/Financial Feasibility)
 
 Cost estimate: Free using, Flutter/Dart/Android etc.
 
