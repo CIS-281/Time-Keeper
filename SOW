@@ -11,6 +11,7 @@ Team Members : Suong Tran, Tobias Cash, Isaac Allen, Jesus Ramos
 Objectives : Develope a time management application to help users organize tasks, and track produtivity
 Platform : Android/IOS
 Tech Stack : Flutter/ Dart/ SQLite
+****
 
 2. Goals and Deliverables
 Primary Goal : Build a functioning Time Management Application
@@ -29,6 +30,7 @@ Ui/UX design - responive design, easyly manageable tasks
 Out of Scope :
 Monetization features
 wearable or smart device integrations
+****
 
 4. Roles and Responsibilities
 Frontend Development : Suong Tran, Jesus Ramos
@@ -48,7 +50,7 @@ Week 6 - 7 : (Implementation) Revise Protoype, Create a Test Plan, Create the In
 Create a Training Plan
 Week 7 - 8 : (Testing ) Revise prototype based on feedback learned during testing, submit a document of logs (Project Testing Log File or Summary Assignment)
 (Presentation) Prepare and deliver Final Project Presentation
-
+****
 6. Assumptions and Contraints
 Team will use GitHub
 Host on a local server
