@@ -10,7 +10,7 @@ Return on Investment (ROI) projection: Potentially large
 
 Funding requirements: none
 
-4. Technical Feasibility
+2. Technical Feasibility
 
 Technology stack: Dart/Flutter, Android Studio, Web Hosting
 
@@ -22,14 +22,14 @@ Scalability: Can be easily scaled upwards or downwards depending on our workload
 
 Security and privacy: Base requirement
 
- 4. Organizational (Polictical) 
+ 3. Organizational (Polictical) 
 Political/Organizational motive: To allow users easier ways to progress their buisness or hobbies
 
 Alignment with Stakeholder Goals: Support businesses by improving productivity, and accountability
 Aligns with organizational values of efficiency, self-management, and growth
 
 
- 7. Schedule Feasibility
+ 4. Schedule Feasibility
 
 Development timeline: 14 weeks - Planning Phase, Analysis Phase, Design Phase, Implementation Phase, Deployment Phase
 Given the scope of this project is not too heavy, as a group, we find 14 weeks plently of time to develope this application.
