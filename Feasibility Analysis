@@ -35,13 +35,3 @@ Support plan: Can provide a breif explainantion of install and post maintanence 
 
 Development timeline: 14 weeks - Planning Phase, Analysis Phase, Design Phase, Implementation Phase, Deployment Phase
 Given the scope of this project is not too heavy, as a group, we find 14 weeks plently of time to develope this application.
-
-(8. Risk Analysis)
-
-Technical risks: Integration failures, bugs, app store rejections, api issues. 
-
-Market risks: Low user adoption, strong competition.
-
-Financial risks: questionable ROI.
-
-Mitigation strategies: Backup plans, pivots, phased rollouts.
