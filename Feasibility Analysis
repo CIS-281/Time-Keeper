@@ -1,5 +1,4 @@
 
- 1. Executive Summary
 Feasibility Analysis: Time Keeper -
 
 A Time management application for IOS/Android built for a variety of users, focused on tracking progress over a set period of time.
@@ -17,8 +16,8 @@ Break-even analysis: Whenever it is completed, since it is mostly going to be us
 
 Return on Investment (ROI) projection: Potentially large 
 
-Funding requirements: none
-
+Funding requirements: none                          
+****
 3. Technical Feasibility
 
 Technology stack: Dart/Flutter, Android Studio, Web Hosting
@@ -36,11 +35,12 @@ Political/Organizational motive: To allow users easier ways to progress their bu
 
 Alignment with Stakeholder Goals: Support businesses by improving productivity, and accountability
                                   Aligns with organizational values of efficiency, self-management, and growth
+****
 
  5. Schedule Feasibility
 
 Development timeline: 14 weeks - Planning Phase, Analysis Phase, Design Phase, Implementation Phase, Deployment Phase
-Given the scope of this project is not too heavy, as a group, we find 14 weeks plently of time to develope this application.
+Given the scope of this project it is not too heavy, as a group, we find 14 weeks plently of time to develope this application.
 
  9. Conclusion & Recommendations
 
