@@ -9,6 +9,8 @@ Branch Overview
 main - Always contains working, stable code + docs.
 Never commit experimental code directly here.
 
+This is where we work first!!! Main is only for complete, working code.
+
 feat/backend - SQLite database setup
 GPS auto clock-in/out
 Payroll export + deployment
