@@ -1,6 +1,11 @@
+// Tobias Cash
+// 09/30/2025
+// Basic entry template for the program. this is only the main.dart so please keep
+// this file simple and use OOP.
+
 import 'package:flutter/material.dart';
 
-// UI screens (these should already exist)
+// UI screens
 import 'ui/clock_screen.dart';
 import 'ui/tasks_screen.dart';
 import 'ui/calendar_screen.dart';
