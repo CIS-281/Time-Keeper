@@ -6,10 +6,11 @@ pls igonore the master branch. main is where we want to work.
 
 Branch Overview
 
-main - Always contains working, stable code + docs.
-Never commit experimental code directly here.
+We have to make sure we select our working branch when coding in android studio. (front, back, design, ...) never code in main branch!
+Main branch only gets done, working code over pull requests once your code is working and pushed to your work branch into github.
 
-This is where we work first!!! Main is only for complete, working code.
+This are some (all for now) of the working branches:
+(Working branches are like your work stations where you experiment how the new code interacts and works with the existing one)
 
 feat/backend - SQLite database setup
 GPS auto clock-in/out
@@ -24,3 +25,5 @@ Navigation
 feat/design - Mockups, wireframes
 UI styling
 Icons, branding
+
+main - only ready to use, working, bug free code is megred here via pull requests within github. This will be our stable and deployable program.
