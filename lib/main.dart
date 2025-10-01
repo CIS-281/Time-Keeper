@@ -1,15 +1,15 @@
-// Tobias Cash
-// 09/30/2025
-// First setup for basic main file. This first setup generates a clean homescreen.
-
 import 'package:flutter/material.dart';
+
+// UI screens (these should already exist)
 import 'ui/clock_screen.dart';
 import 'ui/tasks_screen.dart';
 import 'ui/calendar_screen.dart';
 import 'ui/settings_screen.dart';
 
+/// App entrypoint
 void main() => runApp(const TimeKeeperApp());
 
+/// Root widget: sets theme + home shell
 class TimeKeeperApp extends StatelessWidget {
   const TimeKeeperApp({super.key});
 
@@ -18,13 +18,24 @@ class TimeKeeperApp extends StatelessWidget {
     return MaterialApp(
       title: 'Time Keeper',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.indigo),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        useMaterial3: true,
+      ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      themeMode: ThemeMode.system,
       home: const HomeShell(),
     );
   }
 }
 
-/// Bottom-nav shell that hosts the four primary screens.
+/// Bottom-navigation container for the main sections.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
   @override
@@ -34,12 +45,15 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
+  // Titles for the AppBar
   static const _titles = ['Clock', 'Tasks', 'Calendar', 'Settings'];
-  static final _pages = <Widget>[
-    const ClockScreen(),
-    const TasksScreen(),
-    const CalendarScreen(),
-    const SettingsScreen(),
+
+  // Pages shown for each tab
+  final List<Widget> _pages = const [
+    ClockScreen(),
+    TasksScreen(),
+    CalendarScreen(),
+    SettingsScreen(),
   ];
 
   void _onTap(int i) => setState(() => _index = i);
@@ -47,17 +61,35 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Time Keeper — ${_titles[_index]}'), centerTitle: true),
+      appBar: AppBar(
+        title: Text('Time Keeper — ${_titles[_index]}'),
+        centerTitle: true,
+      ),
       body: _pages[_index],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _index,
-        onTap: _onTap,
-        selectedItemColor: Colors.indigo,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.access_time), label: 'Clock'),
-          BottomNavigationBarItem(icon: Icon(Icons.task), label: 'Tasks'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Calendar'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: _onTap,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.access_time_outlined),
+            selectedIcon: Icon(Icons.access_time),
+            label: 'Clock',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.task_outlined),
+            selectedIcon: Icon(Icons.task),
+            label: 'Tasks',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_today_outlined),
+            selectedIcon: Icon(Icons.calendar_today),
+            label: 'Calendar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
         ],
       ),
     );
