@@ -1,13 +1,15 @@
-// Tobias Cash
-// 09/30/2025
-// First setup for basic main file. This first setup generates a clean homescreen.
-
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const TimeKeeperApp());
-}
+// UI screens (these should already exist)
+import 'ui/clock_screen.dart';
+import 'ui/tasks_screen.dart';
+import 'ui/calendar_screen.dart';
+import 'ui/settings_screen.dart';
 
+/// App entrypoint
+void main() => runApp(const TimeKeeperApp());
+
+/// Root widget: sets theme + home shell
 class TimeKeeperApp extends StatelessWidget {
   const TimeKeeperApp({super.key});
 
@@ -15,41 +17,80 @@ class TimeKeeperApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Time Keeper',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.indigo,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        useMaterial3: true,
       ),
-      home: const HomePage(),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      themeMode: ThemeMode.system,
+      home: const HomeShell(),
     );
   }
 }
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+/// Bottom-navigation container for the main sections.
+class HomeShell extends StatefulWidget {
+  const HomeShell({super.key});
+  @override
+  State<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends State<HomeShell> {
+  int _index = 0;
+
+  // Titles for the AppBar
+  static const _titles = ['Clock', 'Tasks', 'Calendar', 'Settings'];
+
+  // Pages shown for each tab
+  final List<Widget> _pages = const [
+    ClockScreen(),
+    TasksScreen(),
+    CalendarScreen(),
+    SettingsScreen(),
+  ];
+
+  void _onTap(int i) => setState(() => _index = i);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('⏱️ Time Keeper'),
+        title: Text('Time Keeper — ${_titles[_index]}'),
         centerTitle: true,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.access_time, size: 100, color: Colors.indigo),
-            SizedBox(height: 20),
-            Text(
-              'Welcome to Time Keeper!',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Track jobs, clock in/out, and view schedules here.',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+      body: _pages[_index],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: _onTap,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.access_time_outlined),
+            selectedIcon: Icon(Icons.access_time),
+            label: 'Clock',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.task_outlined),
+            selectedIcon: Icon(Icons.task),
+            label: 'Tasks',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_today_outlined),
+            selectedIcon: Icon(Icons.calendar_today),
+            label: 'Calendar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
       ),
     );
   }
