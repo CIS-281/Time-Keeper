@@ -1,17 +1,17 @@
-// lib/ui/settings/company_switcher_tile.dart
 import 'package:flutter/material.dart';
-import '../../services/org_service.dart';
+import 'package:time_keeper/services/org_service.dart';
 
 class CompanySwitcherTile extends StatefulWidget {
   const CompanySwitcherTile({super.key});
+
   @override
   State<CompanySwitcherTile> createState() => _CompanySwitcherTileState();
 }
 
 class _CompanySwitcherTileState extends State<CompanySwitcherTile> {
-  final svc = OrgService();
-  String? _active;
-  List<Map<String,Object?>> _companies = [];
+  final _svc = OrgService();
+  String? _activeId;
+  List<Map<String, String>> _companies = [];
 
   @override
   void initState() {
@@ -20,43 +20,78 @@ class _CompanySwitcherTileState extends State<CompanySwitcherTile> {
   }
 
   Future<void> _load() async {
-    final a = await svc.activeCompanyId();
-    final list = await svc.listCompanies();
-    setState(() { _active = a; _companies = list; });
+    final id = await _svc.activeCompanyId();
+    final list = await _svc.listCompanies(); // List<Map<String,String>>
+    if (!mounted) return;
+    setState(() {
+      _activeId = id;
+      _companies = list;
+    });
+  }
+
+  Future<void> _pick() async {
+    if (_companies.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No companies found on this device')),
+      );
+      return;
+    }
+
+    String? choice = _activeId;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const ListTile(
+              title: Text('Choose company', style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+            for (final c in _companies)
+              RadioListTile<String>(
+                value: c['id']!,
+                groupValue: choice,
+                title: Text(c['name'] ?? ''),
+                subtitle: Text('Code: ${c['code'] ?? ''}'),
+                onChanged: (v) {
+                  choice = v;
+                  Navigator.pop(ctx);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+
+    if (choice != null && choice != _activeId) {
+      await _svc.switchCompany(choice!);
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Company switched')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final activeName = _companies.firstWhere(
-          (c) => c['id'] == _active,
-      orElse: () => const {'name':'None'},
-    )['name'] as String;
     return ListTile(
-      leading: const Icon(Icons.business),
-      title: Text('Active company: $activeName'),
-      subtitle: const Text('Tap to switch'),
-      onTap: () async {
-        final choice = await showModalBottomSheet<String>(
-          context: context,
-          builder: (_) => ListView(
-            children: _companies.map((c) => ListTile(
-              title: Text(c['name'] as String),
-              subtitle: Text('Code: ${c['company_code']}'),
-              trailing: (c['id'] == _active) ? const Icon(Icons.check) : null,
-              onTap: () => Navigator.pop(context, c['id'] as String),
-            )).toList(),
-          ),
-        );
-        if (choice != null && choice != _active) {
-          await svc.switchCompany(choice);
-          await _load();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Company switched')),
-            );
-          }
-        }
-      },
+      leading: const Icon(Icons.swap_horiz),
+      title: const Text('Switch Company'),
+      subtitle: Text(
+        _companies.isEmpty
+            ? 'No companies on this device'
+            : _companies.firstWhere(
+              (e) => e['id'] == _activeId,
+          orElse: () => <String, String>{
+            'name': 'Unknown',
+            'code': '',
+            'id': _activeId ?? '',
+          },
+        )['name']!,
+      ),
+      onTap: _pick,
     );
   }
 }
