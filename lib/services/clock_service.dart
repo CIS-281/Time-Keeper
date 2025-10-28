@@ -1,70 +1,75 @@
-// Tobias Cash
-// 10/01/2025
-// No changes unless confirmed with team! Always test in work branch before!
-// Can mess up GPS API!!!!
+// lib/services/clock_service.dart
+import 'package:time_keeper/data/models.dart';
+import 'package:time_keeper/data/repos.dart';
 
-import 'package:geolocator/geolocator.dart';
-import '../data/models.dart';
-import '../data/repos.dart';
+const String kClockIn = 'IN';
+const String kClockOut = 'OUT';
+const String kClockAutoIn = 'AUTO_IN';
+const String kClockAutoOut = 'AUTO_OUT';
 
-/// Service for manual clock IN/OUT with optional GPS capture.
 class ClockService {
-  final ClockRepo _clockRepo;
-  final EmployeeRepo _empRepo;
+  final EmployeeRepo _employeeRepo = EmployeeRepo();
+  final ClockRepo _clockRepo = ClockRepo();
 
-  ClockService({ClockRepo? clockRepo, EmployeeRepo? empRepo})
-      : _clockRepo = clockRepo ?? ClockRepo(),
-        _empRepo = empRepo ?? EmployeeRepo();
+  int _nowUtcSec() => DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
 
-  /// Creates a default employee if DB is empty. Return its id.
-  Future<int> ensureDefaultEmployee() async {
-    final list = await _empRepo.all();
-    if (list.isEmpty) {
-      final id = await _empRepo.upsert(
-        Employee(fullName: 'Default Employee', payRateCents: 2000),
-      );
-      return id;
-    }
-    return list.first.id ?? 1;
+  Future<int> ensureDefaultEmployee({required String companyId}) async {
+    final list = await _employeeRepo.all(companyId);
+    if (list.isNotEmpty) return list.first.id!;
+    final emp = Employee(fullName: 'Employee', payRateCents: 0);
+    await _employeeRepo.upsert(emp, companyId: companyId);
+    final created = await _employeeRepo.all(companyId);
+    return created.first.id!;
   }
 
-  /// Trys to get a GPS position. Returns null on denied/offline.
-  Future<Position?> _tryGetPosition() async {
-    if (!await Geolocator.isLocationServiceEnabled()) return null;
-
-    var p = await Geolocator.checkPermission();
-    if (p == LocationPermission.denied) {
-      p = await Geolocator.requestPermission();
-    }
-    if (p == LocationPermission.denied || p == LocationPermission.deniedForever) {
-      return null;
-    }
-    return Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-  }
-
-  Future<void> clockIn({required int employeeId}) async {
-    final now = DateTime.now().toUtc().millisecondsSinceEpoch;
-    final pos = await _tryGetPosition();
-    await _clockRepo.insert(ClockEvent(
+  Future<void> clockIn({
+    required int employeeId,
+    required String companyId,
+    int? jobSiteId,
+    String? shiftId,
+    bool auto = false,
+    double? accuracyM,
+  }) async {
+    final ev = ClockEvent(
       employeeId: employeeId,
-      clockType: ClockType.inMan,
-      tsUtc: now,
-      lat: pos?.latitude,
-      lon: pos?.longitude,
-      source: pos == null ? 'manual' : 'manual+gps',
-    ));
+      jobSiteId: jobSiteId,
+      shiftId: shiftId,
+      clockType: auto ? kClockAutoIn : kClockIn,
+      tsUtc: _nowUtcSec(),
+      source: 'app',
+      accuracyM: accuracyM,
+    );
+    await _clockRepo.insert(ev, companyId: companyId);
   }
 
-  Future<void> clockOut({required int employeeId}) async {
-    final now = DateTime.now().toUtc().millisecondsSinceEpoch;
-    final pos = await _tryGetPosition();
-    await _clockRepo.insert(ClockEvent(
+  Future<void> clockOut({
+    required int employeeId,
+    required String companyId,
+    int? jobSiteId,
+    String? shiftId,
+    bool auto = false,
+    double? accuracyM,
+  }) async {
+    final ev = ClockEvent(
       employeeId: employeeId,
-      clockType: ClockType.outMan,
-      tsUtc: now,
-      lat: pos?.latitude,
-      lon: pos?.longitude,
-      source: pos == null ? 'manual' : 'manual+gps',
-    ));
+      jobSiteId: jobSiteId,
+      shiftId: shiftId,
+      clockType: auto ? kClockAutoOut : kClockOut,
+      tsUtc: _nowUtcSec(),
+      source: 'app',
+      accuracyM: accuracyM,
+    );
+    await _clockRepo.insert(ev, companyId: companyId);
   }
+
+  Future<ClockEvent?> lastEvent(int employeeId, {required String companyId}) =>
+      _clockRepo.lastForEmployee(employeeId, companyId: companyId);
+
+  Future<List<ClockEvent>> eventsInRange({
+    required int employeeId,
+    required int startUtcSec,
+    required int endUtcSec,
+    required String companyId,
+  }) =>
+      _clockRepo.inRangeUtc(employeeId, startUtcSec, endUtcSec, companyId: companyId);
 }
