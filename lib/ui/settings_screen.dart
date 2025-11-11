@@ -1,10 +1,16 @@
-// lib/ui/settings/settings_screen.dart
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'package:time_keeper/services/org_service.dart';
 import 'package:time_keeper/services/manager_mode_service.dart';
 import 'package:time_keeper/ui/settings/company_switcher_tile.dart';
 import 'package:time_keeper/ui/onboarding/first_run_wizard.dart';
+
+// ⬇️ NEW imports for profile integration
+import 'package:time_keeper/data/repositories/device_profile_repository.dart';
+import 'package:time_keeper/ui/settings/profile_settings_page.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -21,6 +27,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _mgrEnabled = false;
   ManagerModeService? _mgr;
 
+  // ⬇️ NEW: profile repo + cached fields for display
+  final _profileRepo = DeviceProfileRepository();
+  String? _profileName;
+  String? _profileAvatarPath;
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _load() async {
+    // Load company/org data (unchanged)
     final id = await _org.activeCompanyId();
     if (id == null) {
       if (!mounted) return;
@@ -38,12 +50,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final info = await _org.companyInfo(id);
     final mgr = ManagerModeService(id);
     final enabled = await mgr.isEnabled();
+
+    // ⬇️ NEW: load device profile for display
+    final profile = await _profileRepo.get();
+
     setState(() {
       _companyId = id;
       _companyName = info?['name'] ?? '';
       _companyCode = info?['code'] ?? '';
       _mgr = mgr;
       _mgrEnabled = enabled;
+
+      _profileName = profile?.fullName;
+      _profileAvatarPath = profile?.avatarPath;
     });
   }
 
@@ -93,13 +112,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final code = _companyCode.isEmpty ? '—' : _companyCode;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
+          // Company header (unchanged)
           ListTile(
-            title: Text(_companyName.isEmpty ? 'No company' : _companyName,
-                style: Theme.of(context).textTheme.titleLarge),
+            title: Text(
+              _companyName.isEmpty ? 'No company' : _companyName,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             subtitle: Text('Join code: $code'),
             trailing: IconButton(
               icon: const Icon(Icons.copy),
@@ -114,7 +137,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const Divider(),
 
-          // Manager Mode
+          // ⬇️ NEW: User Profile tile
+          ListTile(
+            leading: CircleAvatar(
+              radius: 22,
+              backgroundImage: (_profileAvatarPath != null && _profileAvatarPath!.isNotEmpty)
+                  ? FileImage(File(_profileAvatarPath!))
+                  : null,
+              child: (_profileAvatarPath == null || _profileAvatarPath!.isEmpty)
+                  ? const Icon(Icons.person)
+                  : null,
+            ),
+            title: Text(_profileName?.isNotEmpty == true ? _profileName! : 'User Profile'),
+            subtitle: const Text('Edit name, role, device & avatar'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileSettingsPage()),
+              );
+              if (!mounted) return;
+              // Refresh the preview after returning from editor
+              final profile = await _profileRepo.get();
+              setState(() {
+                _profileName = profile?.fullName;
+                _profileAvatarPath = profile?.avatarPath;
+              });
+            },
+          ),
+          const Divider(),
+
+          // Manager Mode (unchanged)
           SwitchListTile(
             title: const Text('Manager Mode'),
             subtitle: Text(_mgrEnabled ? 'Enabled' : 'Locked (enter PIN)'),
@@ -130,7 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const Divider(),
 
-          // Company switch / create / join
+          // Company switch / create / join (unchanged)
           const CompanySwitcherTile(),
           ListTile(
             leading: const Icon(Icons.factory_outlined),
