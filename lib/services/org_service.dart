@@ -2,29 +2,32 @@
 import 'dart:math';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite/sqflite.dart' show Database, ConflictAlgorithm;
 import 'package:time_keeper/data/app_db.dart';
 
 class OrgService {
   // --- public ---------------------------------------------------------------
 
   Future<String?> activeCompanyId() async {
-    final db = await AppDb.open();
+    final db = await AppDb.instance();
     await _ensureCore(db);
     final r = await db.query('settings', where: 'key=?', whereArgs: ['active_company_id'], limit: 1);
     return r.isEmpty ? null : r.first['val'] as String?;
   }
 
   Future<void> setActiveCompany(String id) async {
-    final db = await AppDb.open();
+    final db = await AppDb.instance();
     await _ensureCore(db);
-    await db.insert('settings', {'key': 'active_company_id', 'val': id},
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'settings',
+      {'key': 'active_company_id', 'val': id},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   /// Create a company; creator sets the **company-wide Manager PIN**.
   Future<Map<String, String>> createCompany(String name, {required String managerPin}) async {
-    final db = await AppDb.open();
+    final db = await AppDb.instance();
     await _ensureCore(db);
     await _ensureCompany(db);
 
@@ -44,8 +47,8 @@ class OrgService {
       'manager_pin_salt': base64Encode(salt),
     });
 
-    // Creator device profile marked as manager
-    await db.insert('device_profile', {
+    // Per-device membership record (role stored locally per device)
+    await db.insert('device_company', {
       'company_id': id,
       'role': 'manager',
       'created_utc': now,
@@ -57,7 +60,7 @@ class OrgService {
 
   /// Join by code; role stored locally (default employee). Returns company_id or null.
   Future<String?> joinCompanyByCode(String code, {String role = 'employee'}) async {
-    final db = await AppDb.open();
+    final db = await AppDb.instance();
     await _ensureCore(db);
     await _ensureCompany(db);
 
@@ -65,11 +68,15 @@ class OrgService {
     if (rows.isEmpty) return null;
     final id = rows.first['id'] as String;
 
-    await db.insert('device_profile', {
-      'company_id': id,
-      'role': role,
-      'created_utc': _now(),
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'device_company',
+      {
+        'company_id': id,
+        'role': role,
+        'created_utc': _now(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
 
     await setActiveCompany(id);
     return id;
@@ -77,7 +84,7 @@ class OrgService {
 
   /// For Settings list/switch UI
   Future<List<Map<String, String>>> listCompanies() async {
-    final db = await AppDb.open();
+    final db = await AppDb.instance();
     await _ensureCompany(db);
     final rows = await db.query('company', orderBy: 'name ASC');
     return rows
@@ -90,7 +97,7 @@ class OrgService {
   }
 
   Future<void> switchCompany(String companyId) async {
-    final db = await AppDb.open();
+    final db = await AppDb.instance();
     await _ensureCompany(db);
     final x = await db.query('company', where: 'id=?', whereArgs: [companyId], limit: 1);
     if (x.isEmpty) throw StateError('Company not found');
@@ -99,7 +106,7 @@ class OrgService {
 
   /// Info for Settings header
   Future<Map<String, String>?> companyInfo(String companyId) async {
-    final db = await AppDb.open();
+    final db = await AppDb.instance();
     await _ensureCompany(db);
     final r = await db.query('company', where: 'id=?', whereArgs: [companyId], limit: 1);
     if (r.isEmpty) return null;
@@ -114,12 +121,14 @@ class OrgService {
   // --- Manager PIN (company-wide) ------------------------------------------
 
   Future<bool> verifyManagerPin(String companyId, String pin) async {
-    final db = await AppDb.open();
-    final r = await db.query('company',
-        columns: ['manager_pin_hash', 'manager_pin_salt'],
-        where: 'id=?',
-        whereArgs: [companyId],
-        limit: 1);
+    final db = await AppDb.instance();
+    final r = await db.query(
+      'company',
+      columns: ['manager_pin_hash', 'manager_pin_salt'],
+      where: 'id=?',
+      whereArgs: [companyId],
+      limit: 1,
+    );
     if (r.isEmpty) return false;
     final saltB64 = r.first['manager_pin_salt'] as String?;
     final hash = r.first['manager_pin_hash'] as String?;
@@ -133,7 +142,7 @@ class OrgService {
     if (!await verifyManagerPin(companyId, oldPin)) {
       throw StateError('Old PIN invalid');
     }
-    final db = await AppDb.open();
+    final db = await AppDb.instance();
     final salt = _salt();
     final hash = _hash(newPin, salt);
     await db.update(
@@ -166,8 +175,11 @@ class OrgService {
         manager_pin_salt TEXT
       );
     ''');
+
+    // NOTE: use device_company (NOT device_profile) to avoid conflict with the
+    // local device-specific profile table used for user name/email/avatar.
     await db.execute('''
-      CREATE TABLE IF NOT EXISTS device_profile(
+      CREATE TABLE IF NOT EXISTS device_company(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         company_id TEXT NOT NULL,
         role TEXT NOT NULL,
@@ -191,6 +203,7 @@ class OrgService {
   }
 
   List<int> _salt() => List<int>.generate(16, (_) => Random.secure().nextInt(256));
+
   String _hash(String pin, List<int> salt) {
     final bytes = <int>[];
     bytes..addAll(utf8.encode(pin))..addAll(salt);
