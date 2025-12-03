@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:time_keeper/data/models/task.dart';
+import 'package:time_keeper/data/models/subtask.dart';
+import 'package:time_keeper/data/repositories/tasks_repo.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -8,8 +11,21 @@ class TasksScreen extends StatefulWidget {
 }
 
 class _TasksScreenState extends State<TasksScreen> {
-  // In-memory task list
-  final List<Task> _tasks = [];
+  final _repo = TasksRepository();
+  List<TaskModel> _tasks = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+  }
+
+  Future<void> _loadTasks() async {
+    final tasks = await _repo.getAllTasks();
+    setState(() {
+      _tasks = tasks;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +51,8 @@ class _TasksScreenState extends State<TasksScreen> {
                 if (task.recurrence != null && task.recurrence!.isNotEmpty)
                   Text('Recurrence: ${task.recurrence}'),
                 if (task.subtasks.isNotEmpty)
-                  Text('Subtasks: ${task.subtasks.map((s) => s.title).join(', ')}'),
+                  Text(
+                      'Subtasks: ${task.subtasks.map((s) => s.title).join(', ')}'),
               ],
             ),
             children: [
@@ -43,15 +60,21 @@ class _TasksScreenState extends State<TasksScreen> {
                 ListTile(
                   leading: Checkbox(
                     value: subtask.completed,
-                    onChanged: (val) {
-                      setState(() => subtask.completed = val ?? false);
+                    onChanged: (val) async {
+                      subtask.completed = val ?? false;
+                      try {
+                        await _repo.updateSubTask(subtask);
+                      } catch (e) {
+                        print('Error updating subtask: $e');
+                      }
+                      setState(() {});
                     },
                   ),
                   title: Text(subtask.title),
                 ),
               OverflowBar(
                 alignment: MainAxisAlignment.end,
-                spacing: 8, // optional spacing between buttons
+                spacing: 8,
                 children: [
                   TextButton(
                     onPressed: () => _addSubtask(task),
@@ -80,15 +103,21 @@ class _TasksScreenState extends State<TasksScreen> {
 
   void _addTask() => _showTaskDialog();
 
-  void _editTask(Task task) => _showTaskDialog(task: task);
+  void _editTask(TaskModel task) => _showTaskDialog(task: task);
 
-  void _deleteTask(Task task) {
-    setState(() {
-      _tasks.remove(task);
-    });
+  Future<void> _deleteTask(TaskModel task) async {
+    try {
+      await _repo.deleteTask(task.id!);
+      setState(() {
+        _tasks.remove(task);
+      });
+    } catch (e) {
+      print('Error deleting task: $e');
+    }
   }
 
-  void _addSubtask(Task task) {
+  void _addSubtask(TaskModel task) {
+    if (task.id == null) return; // Safety check
     final controller = TextEditingController();
 
     showDialog(
@@ -100,14 +129,28 @@ class _TasksScreenState extends State<TasksScreen> {
           decoration: const InputDecoration(labelText: 'Subtask Title'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (controller.text.isEmpty) return;
-              setState(() {
-                task.subtasks.add(SubTask(title: controller.text));
-              });
-              Navigator.pop(context);
+
+              try {
+                final subtask = SubTaskModel(
+                  taskId: task.id!,
+                  title: controller.text,
+                );
+                final id = await _repo.insertSubTask(subtask);
+                subtask.id = id;
+
+                setState(() {
+                  task.subtasks.add(subtask);
+                });
+                Navigator.pop(context);
+              } catch (e) {
+                print('Error adding subtask: $e');
+              }
             },
             child: const Text('Add'),
           ),
@@ -116,11 +159,14 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  void _showTaskDialog({Task? task}) {
+  void _showTaskDialog({TaskModel? task}) {
     final titleController = TextEditingController(text: task?.title ?? '');
-    final categoryController = TextEditingController(text: task?.category ?? '');
-    final clientController = TextEditingController(text: task?.clientJob ?? '');
-    final recurrenceController = TextEditingController(text: task?.recurrence ?? '');
+    final categoryController =
+    TextEditingController(text: task?.category ?? '');
+    final clientController =
+    TextEditingController(text: task?.clientJob ?? '');
+    final recurrenceController =
+    TextEditingController(text: task?.recurrence ?? '');
 
     showDialog(
       context: context,
@@ -130,34 +176,55 @@ class _TasksScreenState extends State<TasksScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Task Title')),
-              TextField(controller: categoryController, decoration: const InputDecoration(labelText: 'Category')),
-              TextField(controller: clientController, decoration: const InputDecoration(labelText: 'Client/Job')),
-              TextField(controller: recurrenceController, decoration: const InputDecoration(labelText: 'Recurrence')),
+              TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(labelText: 'Task Title')),
+              TextField(
+                  controller: categoryController,
+                  decoration: const InputDecoration(labelText: 'Category')),
+              TextField(
+                  controller: clientController,
+                  decoration:
+                  const InputDecoration(labelText: 'Client/Job')),
+              TextField(
+                  controller: recurrenceController,
+                  decoration:
+                  const InputDecoration(labelText: 'Recurrence')),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (titleController.text.isEmpty) return;
-              setState(() {
+
+              try {
                 if (task == null) {
-                  _tasks.add(Task(
+                  final newTask = TaskModel(
                     title: titleController.text,
                     category: categoryController.text,
                     clientJob: clientController.text,
                     recurrence: recurrenceController.text,
-                  ));
+                  );
+                  final id = await _repo.insertTask(newTask);
+                  newTask.id = id;
+                  setState(() => _tasks.add(newTask));
                 } else {
                   task.title = titleController.text;
                   task.category = categoryController.text;
                   task.clientJob = clientController.text;
                   task.recurrence = recurrenceController.text;
+                  await _repo.updateTask(task);
+                  setState(() {});
                 }
-              });
-              Navigator.pop(context);
+
+                Navigator.pop(context);
+              } catch (e) {
+                print('Error saving task: $e');
+              }
             },
             child: const Text('Save'),
           ),
@@ -165,22 +232,4 @@ class _TasksScreenState extends State<TasksScreen> {
       ),
     );
   }
-}
-
-// Models
-class Task {
-  String title;
-  String? category;
-  List<SubTask> subtasks = [];
-  String? clientJob;
-  String? recurrence;
-
-  Task({required this.title, this.category, this.clientJob, this.recurrence});
-}
-
-class SubTask {
-  String title;
-  bool completed = false;
-
-  SubTask({required this.title});
 }

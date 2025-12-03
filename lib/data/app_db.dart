@@ -45,21 +45,26 @@ class _DbCore {
       );
     ''');
 
-    // Device-specific profile (local-only, 1-row semantics optional)
     await db.execute('''
       CREATE TABLE IF NOT EXISTS device_profile(
         id INTEGER PRIMARY KEY CHECK (id = 1),
         full_name   TEXT,
         email       TEXT,
         phone       TEXT,
-        role        TEXT,          -- legacy, not used as editable now
+        role        TEXT,
         avatar_path TEXT,
-        device_label TEXT,
-        created_at  INTEGER
+        device_label TEXT
       );
     ''');
 
-    // Ensure a single row exists (ignore if already there)
+    // Ensure 'created_at' column exists safely
+    try {
+      await db.execute('ALTER TABLE device_profile ADD COLUMN created_at INTEGER');
+    } catch (_) {
+      // Column already exists, ignore
+    }
+
+    // Ensure a single row exists
     await db.insert(
       'device_profile',
       {'id': 1, 'created_at': DateTime.now().millisecondsSinceEpoch},
@@ -79,7 +84,6 @@ class _DbCore {
       );
     ''');
 
-    // Per-device membership/role (local mirror; UNIQUE 1 company per device)
     await db.execute('''
       CREATE TABLE IF NOT EXISTS device_company(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,7 +95,6 @@ class _DbCore {
   }
 
   static Future<void> _createDomainTables(Database db) async {
-    // NOTE: names match your repos.dart
     await db.execute('''
       CREATE TABLE IF NOT EXISTS job_site(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -114,11 +117,11 @@ class _DbCore {
 
     await db.execute('''
       CREATE TABLE IF NOT EXISTS jobs(
-        id TEXT PRIMARY KEY,                -- UUID
+        id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         hourly_rate_cents INTEGER NOT NULL,
         late_grace_mins INTEGER NOT NULL,
-        allow_auto_clock_in INTEGER NOT NULL,  -- 0/1
+        allow_auto_clock_in INTEGER NOT NULL,
         job_site_id INTEGER,
         company_id TEXT
       );
@@ -126,7 +129,7 @@ class _DbCore {
 
     await db.execute('''
       CREATE TABLE IF NOT EXISTS shifts(
-        id TEXT PRIMARY KEY,               -- UUID
+        id TEXT PRIMARY KEY,
         employee_id INTEGER NOT NULL,
         job_id TEXT NOT NULL,
         clock_in_utc INTEGER NOT NULL,
@@ -142,7 +145,7 @@ class _DbCore {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         employee_id INTEGER NOT NULL,
         job_site_id INTEGER,
-        clock_type TEXT NOT NULL,          -- IN, OUT, AUTO_IN, AUTO_OUT
+        clock_type TEXT NOT NULL,
         ts_utc INTEGER NOT NULL,
         lat REAL,
         lon REAL,
@@ -152,13 +155,32 @@ class _DbCore {
         company_id TEXT
       );
     ''');
+
+    // ===== TASKS & SUBTASKS =====
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS task(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        category TEXT,
+        client_job TEXT,
+        recurrence TEXT
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS subtask(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        completed INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY(task_id) REFERENCES task(id) ON DELETE CASCADE
+      );
+    ''');
   }
 
   static Future<void> _createViews(Database db) async {
-    // Shift summary view (safe recreate)
     await db.execute('DROP VIEW IF EXISTS vw_shift_summary');
 
-    // Compute worked_seconds & earnings_cents in a simple way
     await db.execute('''
       CREATE VIEW vw_shift_summary AS
       SELECT 
@@ -171,12 +193,10 @@ class _DbCore {
         s.clock_out_utc AS clock_out_utc,
         s.status AS status,
         s.company_id AS company_id,
-        -- worked seconds (if still open, treat as 0 for summary)
         CASE 
           WHEN s.clock_out_utc IS NULL THEN 0
           ELSE (s.clock_out_utc - s.clock_in_utc)
         END AS worked_seconds,
-        -- earnings cents = hours * rate
         CASE 
           WHEN s.clock_out_utc IS NULL THEN 0
           ELSE CAST(ROUND(((s.clock_out_utc - s.clock_in_utc) / 3600.0) * j.hourly_rate_cents) AS INTEGER)
