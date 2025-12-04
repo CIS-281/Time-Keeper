@@ -1,207 +1,154 @@
 // lib/data/app_db.dart
-import 'dart:async';
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
+// Unified SQLite database helper with compatibility:
+// - AppDatabase.instance() for older DAO-style code
+// - AppDb.instance() and AppDb.open() for newer repos
 
-class _DbCore {
+import 'dart:async';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
+
+class AppDatabase {
   static Database? _db;
 
   static Future<Database> instance() async {
     if (_db != null) return _db!;
+
     final dir = await getApplicationDocumentsDirectory();
-    final path = join(dir.path, 'timekeeper.db');
+    final path = p.join(dir.path, 'timekeeper.db');
 
     _db = await openDatabase(
       path,
-      version: 5, // bump to force onUpgrade to run once
-      onConfigure: (db) async {
-        await db.execute('PRAGMA foreign_keys = ON');
-      },
-      onCreate: (db, v) async {
-        await _createCore(db);
-        await _createCompanyTables(db);
-        await _createDomainTables(db);
-        await _createViews(db);
-        await _createIndexes(db);
+      version: 1,
+      onCreate: (db, _) async {
+        // Keep everything defensive with IF NOT EXISTS so we don't
+        // crash if the file already has some tables.
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS company(
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            join_code TEXT,
+            created_utc INTEGER
+          );
+        ''');
+
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS device_profile(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id TEXT,
+            role TEXT,
+            display_name TEXT,
+            employee_id INTEGER
+          );
+        ''');
+
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS employee(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            full_name TEXT NOT NULL,
+            pay_rate_cents INTEGER NOT NULL DEFAULT 0
+          );
+        ''');
+
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS job(
+            id TEXT PRIMARY KEY,
+            company_id TEXT,
+            name TEXT NOT NULL,
+            hourly_rate_cents INTEGER NOT NULL DEFAULT 0
+          );
+        ''');
+
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS job_site(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            latitude REAL,
+            longitude REAL,
+            radius_m INTEGER
+          );
+        ''');
+
+        // Basic clock_event table – matches what your models/repos expect:
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS clock_event(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER NOT NULL,
+            company_id TEXT,
+            job_site_id INTEGER,
+            clock_type TEXT NOT NULL,
+            ts_utc INTEGER NOT NULL,
+            lat REAL,
+            lon REAL,
+            source TEXT
+          );
+        ''');
       },
       onUpgrade: (db, oldV, newV) async {
-        // Create any missing tables/views without dropping user data
-        await _createCore(db);
-        await _createCompanyTables(db);
-        await _createDomainTables(db);
-        await _createViews(db);
-        await _createIndexes(db);
+        // Just ensure tables exist for now
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS company(
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            join_code TEXT,
+            created_utc INTEGER
+          );
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS device_profile(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            company_id TEXT,
+            role TEXT,
+            display_name TEXT,
+            employee_id INTEGER
+          );
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS employee(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            full_name TEXT NOT NULL,
+            pay_rate_cents INTEGER NOT NULL DEFAULT 0
+          );
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS job(
+            id TEXT PRIMARY KEY,
+            company_id TEXT,
+            name TEXT NOT NULL,
+            hourly_rate_cents INTEGER NOT NULL DEFAULT 0
+          );
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS job_site(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            latitude REAL,
+            longitude REAL,
+            radius_m INTEGER
+          );
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS clock_event(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER NOT NULL,
+            company_id TEXT,
+            job_site_id INTEGER,
+            clock_type TEXT NOT NULL,
+            ts_utc INTEGER NOT NULL,
+            lat REAL,
+            lon REAL,
+            source TEXT
+          );
+        ''');
       },
     );
+
     return _db!;
   }
-
-  static Future<void> _createCore(Database db) async {
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS settings(
-        key TEXT PRIMARY KEY,
-        val TEXT
-      );
-    ''');
-
-    // Device-specific profile (local-only, 1-row semantics optional)
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS device_profile(
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        full_name   TEXT,
-        email       TEXT,
-        phone       TEXT,
-        role        TEXT,          -- legacy, not used as editable now
-        avatar_path TEXT,
-        device_label TEXT,
-        created_at  INTEGER
-      );
-    ''');
-
-    // Ensure a single row exists (ignore if already there)
-    await db.insert(
-      'device_profile',
-      {'id': 1, 'created_at': DateTime.now().millisecondsSinceEpoch},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
-  }
-
-  static Future<void> _createCompanyTables(Database db) async {
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS company(
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        company_code TEXT UNIQUE,
-        created_utc INTEGER NOT NULL,
-        manager_pin_hash TEXT,
-        manager_pin_salt TEXT
-      );
-    ''');
-
-    // Per-device membership/role (local mirror; UNIQUE 1 company per device)
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS device_company(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        company_id TEXT NOT NULL UNIQUE,
-        role TEXT NOT NULL,
-        created_utc INTEGER NOT NULL
-      );
-    ''');
-  }
-
-  static Future<void> _createDomainTables(Database db) async {
-    // NOTE: names match your repos.dart
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS job_site(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        latitude REAL NOT NULL,
-        longitude REAL NOT NULL,
-        radius_m INTEGER NOT NULL,
-        company_id TEXT
-      );
-    ''');
-
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS employee(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        full_name TEXT NOT NULL,
-        pay_rate_cents INTEGER NOT NULL DEFAULT 0,
-        company_id TEXT
-      );
-    ''');
-
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS jobs(
-        id TEXT PRIMARY KEY,                -- UUID
-        name TEXT NOT NULL,
-        hourly_rate_cents INTEGER NOT NULL,
-        late_grace_mins INTEGER NOT NULL,
-        allow_auto_clock_in INTEGER NOT NULL,  -- 0/1
-        job_site_id INTEGER,
-        company_id TEXT
-      );
-    ''');
-
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS shifts(
-        id TEXT PRIMARY KEY,               -- UUID
-        employee_id INTEGER NOT NULL,
-        job_id TEXT NOT NULL,
-        clock_in_utc INTEGER NOT NULL,
-        clock_out_utc INTEGER,
-        status TEXT NOT NULL,
-        avg_accuracy_m REAL,
-        company_id TEXT
-      );
-    ''');
-
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS clock_event(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_id INTEGER NOT NULL,
-        job_site_id INTEGER,
-        clock_type TEXT NOT NULL,          -- IN, OUT, AUTO_IN, AUTO_OUT
-        ts_utc INTEGER NOT NULL,
-        lat REAL,
-        lon REAL,
-        source TEXT,
-        shift_id TEXT,
-        accuracy_m REAL,
-        company_id TEXT
-      );
-    ''');
-  }
-
-  static Future<void> _createViews(Database db) async {
-    // Shift summary view (safe recreate)
-    await db.execute('DROP VIEW IF EXISTS vw_shift_summary');
-
-    // Compute worked_seconds & earnings_cents in a simple way
-    await db.execute('''
-      CREATE VIEW vw_shift_summary AS
-      SELECT 
-        s.id AS shift_id,
-        s.employee_id AS employee_id,
-        s.job_id AS job_id,
-        j.name AS job_name,
-        j.hourly_rate_cents AS hourly_rate_cents,
-        s.clock_in_utc AS clock_in_utc,
-        s.clock_out_utc AS clock_out_utc,
-        s.status AS status,
-        s.company_id AS company_id,
-        -- worked seconds (if still open, treat as 0 for summary)
-        CASE 
-          WHEN s.clock_out_utc IS NULL THEN 0
-          ELSE (s.clock_out_utc - s.clock_in_utc)
-        END AS worked_seconds,
-        -- earnings cents = hours * rate
-        CASE 
-          WHEN s.clock_out_utc IS NULL THEN 0
-          ELSE CAST(ROUND(((s.clock_out_utc - s.clock_in_utc) / 3600.0) * j.hourly_rate_cents) AS INTEGER)
-        END AS earnings_cents
-      FROM shifts s
-      JOIN jobs j ON j.id = s.job_id
-    ''');
-  }
-
-  static Future<void> _createIndexes(Database db) async {
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_clock_event_emp_ts ON clock_event(employee_id, ts_utc)');
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_shifts_emp_in ON shifts(employee_id, clock_in_utc)');
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_jobs_company ON jobs(company_id)');
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_job_site_company ON job_site(company_id)');
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_employee_company ON employee(company_id)');
-  }
 }
 
-/// New name used by newer code
-class AppDatabase {
-  static Future<Database> instance() => _DbCore.instance();
-}
-
-/// Backward-compat shim used across the codebase
+// Newer helper name used by repos + services
 class AppDb {
-  static Future<Database> instance() => _DbCore.instance();
-  static Future<Database> open() => _DbCore.instance(); // legacy alias
+  static Future<Database> instance() => AppDatabase.instance();
+  static Future<Database> open() => AppDatabase.instance();
 }
