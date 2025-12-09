@@ -14,7 +14,7 @@ class _DbCore {
 
     _db = await openDatabase(
       path,
-      version: 5, // bump to force onUpgrade to run once
+      version: 7, // bump DB version to trigger upgrade
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -26,7 +26,7 @@ class _DbCore {
         await _createIndexes(db);
       },
       onUpgrade: (db, oldV, newV) async {
-        // Create any missing tables/views without dropping user data
+        // Safely re-run table creation — SQLite will ignore existing tables
         await _createCore(db);
         await _createCompanyTables(db);
         await _createDomainTables(db);
@@ -37,6 +37,9 @@ class _DbCore {
     return _db!;
   }
 
+  // -------------------------------------------------------------
+  // CORE TABLES
+  // -------------------------------------------------------------
   static Future<void> _createCore(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS settings(
@@ -53,18 +56,12 @@ class _DbCore {
         phone       TEXT,
         role        TEXT,
         avatar_path TEXT,
-        device_label TEXT
+        device_label TEXT,
+        created_at INTEGER
       );
     ''');
 
-    // Ensure 'created_at' column exists safely
-    try {
-      await db.execute('ALTER TABLE device_profile ADD COLUMN created_at INTEGER');
-    } catch (_) {
-      // Column already exists, ignore
-    }
-
-    // Ensure a single row exists
+    // Ensure row exists
     await db.insert(
       'device_profile',
       {'id': 1, 'created_at': DateTime.now().millisecondsSinceEpoch},
@@ -72,6 +69,9 @@ class _DbCore {
     );
   }
 
+  // -------------------------------------------------------------
+  // COMPANY TABLES
+  // -------------------------------------------------------------
   static Future<void> _createCompanyTables(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS company(
@@ -94,7 +94,12 @@ class _DbCore {
     ''');
   }
 
+  // -------------------------------------------------------------
+  // DOMAIN TABLES (EMPLOYEES, JOBS, TASKS, ETC.)
+  // -------------------------------------------------------------
   static Future<void> _createDomainTables(Database db) async {
+
+    // --- JOB SITE ---
     await db.execute('''
       CREATE TABLE IF NOT EXISTS job_site(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -106,6 +111,7 @@ class _DbCore {
       );
     ''');
 
+    // --- EMPLOYEES ---
     await db.execute('''
       CREATE TABLE IF NOT EXISTS employee(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -115,6 +121,7 @@ class _DbCore {
       );
     ''');
 
+    // --- JOBS ---
     await db.execute('''
       CREATE TABLE IF NOT EXISTS jobs(
         id TEXT PRIMARY KEY,
@@ -127,6 +134,7 @@ class _DbCore {
       );
     ''');
 
+    // --- SHIFTS ---
     await db.execute('''
       CREATE TABLE IF NOT EXISTS shifts(
         id TEXT PRIMARY KEY,
@@ -140,6 +148,7 @@ class _DbCore {
       );
     ''');
 
+    // --- CLOCK EVENT ---
     await db.execute('''
       CREATE TABLE IF NOT EXISTS clock_event(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -156,17 +165,24 @@ class _DbCore {
       );
     ''');
 
-    // ===== TASKS & SUBTASKS =====
+    // -------------------------------------------------------------
+    // TASKS
+    // -------------------------------------------------------------
     await db.execute('''
       CREATE TABLE IF NOT EXISTS task(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         category TEXT,
         client_job TEXT,
-        recurrence TEXT
+        recurrence TEXT,
+        company_id TEXT,
+        start_utc INTEGER,
+        end_utc INTEGER,
+        job_site_id INTEGER
       );
     ''');
 
+    // SUBTASKS
     await db.execute('''
       CREATE TABLE IF NOT EXISTS subtask(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -176,8 +192,24 @@ class _DbCore {
         FOREIGN KEY(task_id) REFERENCES task(id) ON DELETE CASCADE
       );
     ''');
+
+    // -------------------------------------------------------------
+    // MANY-TO-MANY: TASK <-> EMPLOYEE LINK TABLE
+    // -------------------------------------------------------------
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS task_employee(
+        task_id INTEGER NOT NULL,
+        employee_id INTEGER NOT NULL,
+        PRIMARY KEY (task_id, employee_id),
+        FOREIGN KEY(task_id) REFERENCES task(id) ON DELETE CASCADE,
+        FOREIGN KEY(employee_id) REFERENCES employee(id) ON DELETE CASCADE
+      );
+    ''');
   }
 
+  // -------------------------------------------------------------
+  // VIEWS
+  // -------------------------------------------------------------
   static Future<void> _createViews(Database db) async {
     await db.execute('DROP VIEW IF EXISTS vw_shift_summary');
 
@@ -206,6 +238,9 @@ class _DbCore {
     ''');
   }
 
+  // -------------------------------------------------------------
+  // INDEXES
+  // -------------------------------------------------------------
   static Future<void> _createIndexes(Database db) async {
     await db.execute('CREATE INDEX IF NOT EXISTS idx_clock_event_emp_ts ON clock_event(employee_id, ts_utc)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_shifts_emp_in ON shifts(employee_id, clock_in_utc)');
@@ -215,13 +250,13 @@ class _DbCore {
   }
 }
 
-/// New name used by newer code
+/// Public API
 class AppDatabase {
   static Future<Database> instance() => _DbCore.instance();
 }
 
-/// Backward-compat shim used across the codebase
+/// Legacy alias
 class AppDb {
   static Future<Database> instance() => _DbCore.instance();
-  static Future<Database> open() => _DbCore.instance(); // legacy alias
+  static Future<Database> open() => _DbCore.instance();
 }
